@@ -13,12 +13,6 @@
 <div class="cart-container">
   <h1>Your Shopping Cart</h1>
 
-  <!-- Currency Selector -->
-  <div class="currency-select">
-    <label for="currency">Currency: </label>
-    <select id="currency"></select>
-  </div>
-
   <table>
     <thead>
       <tr>
@@ -56,124 +50,69 @@
     <div id="discount-message" style="color:green; margin-top:5px;"></div>
   </div>
 
-  <div id="discount-info" style="color: blue; margin-bottom: 20px;"></div>
   <button class="checkout-btn">Proceed to Checkout</button>
 </div>
 
 <script>
-// --- 1. Currency list (can expand easily) ---
-const currencies = [
-  { code:"GBP", symbol:"£" }, { code:"USD", symbol:"$" }, { code:"EUR", symbol:"€" },
-  { code:"JPY", symbol:"¥" }, { code:"AUD", symbol:"A$" }, { code:"CAD", symbol:"C$" },
-  { code:"CHF", symbol:"CHF" }, { code:"CNY", symbol:"¥" }, { code:"SEK", symbol:"kr" },
-  { code:"NZD", symbol:"NZ$" }
-  // Add more currencies here if needed
-];
-
-// --- 2. Populate dropdown dynamically ---
-const currencyDropdown = document.getElementById("currency");
-currencies.forEach(curr => {
-  const option = document.createElement("option");
-  option.value = curr.code;
-  option.textContent = `${curr.symbol} ${curr.code}`;
-  currencyDropdown.appendChild(option);
-});
-
-// --- 3. Currency rates ---
-const rates = {
-  GBP:1, USD:1.27, EUR:1.16, JPY:185.42, AUD:1.85, CAD:1.68, CHF:1.14, CNY:8.87, SEK:14.05, NZD:2.02
-  // Expand rates as currencies expand
-};
-
-// --- 4. Currency symbols for formatting ---
-const currencySymbols = {};
-currencies.forEach(c => currencySymbols[c.code] = c.symbol);
-
-// --- 5. Elements ---
 const priceElements = document.querySelectorAll(".price");
 const quantityInputs = document.querySelectorAll(".quantity-input");
 const subtotalElements = document.querySelectorAll(".subtotal");
 const totalElement = document.querySelector(".total");
 
-// --- 6. Format numbers ---
+// Format numbers
 function formatNumber(num) {
-  return Number(num).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  return Number(num).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
-// --- 7. Update price column ---
-function updatePriceDisplay() {
-  const currency = currencyDropdown.value;
-  const symbol = currencySymbols[currency] || currency;
-
-  priceElements.forEach(priceEl => {
-    const gbpPrice = parseFloat(priceEl.dataset.gbp);
-    priceEl.textContent = symbol + formatNumber(gbpPrice * rates[currency]);
-  });
-}
-
-// --- 8. Update subtotal for a row ---
+// Update subtotal for a row
 function updateSubtotal(row) {
-  const qtyEl = row.querySelector(".quantity-input");
-  const subtotalEl = row.querySelector(".subtotal");
-  const priceEl = row.querySelector(".price");
-
-  const gbpPrice = parseFloat(priceEl.dataset.gbp);
-  const qty = parseFloat(qtyEl.value);
-  const currency = currencyDropdown.value;
-  const rate = rates[currency];
-  const symbol = currencySymbols[currency] || currency;
-
-  const subtotal = gbpPrice * qty * rate;
-  subtotalEl.textContent = symbol + formatNumber(subtotal);
+  const qty = parseFloat(row.querySelector(".quantity-input").value);
+  const gbpPrice = parseFloat(row.querySelector(".price").dataset.gbp);
+  row.querySelector(".subtotal").textContent = "£" + formatNumber(gbpPrice * qty);
 }
 
-// --- 9. Update entire cart ---
+// Update total
 function updateCart() {
-  updatePriceDisplay();
   subtotalElements.forEach(el => updateSubtotal(el.closest("tr")));
 
   let totalGBP = 0;
-  priceElements.forEach((priceEl, index) => {
-    const qty = parseFloat(quantityInputs[index].value);
-    totalGBP += parseFloat(priceEl.dataset.gbp) * qty;
+  priceElements.forEach((el, i) => {
+    const qty = parseFloat(quantityInputs[i].value);
+    totalGBP += parseFloat(el.dataset.gbp) * qty;
   });
 
-  const currency = currencyDropdown.value;
-  const rate = rates[currency];
-  const symbol = currencySymbols[currency] || currency;
-  totalElement.textContent = "Total: " + symbol + formatNumber(totalGBP * rate);
+  totalElement.textContent = "Total: £" + formatNumber(totalGBP);
 }
 
-// --- 10. Event listeners ---
-currencyDropdown.addEventListener("change", updateCart);
+// Event listeners
 quantityInputs.forEach(input => input.addEventListener("input", updateCart));
 
-// --- 11. Initial update ---
-updateCart();
-
-// --- 12. Discount codes ---
-const discountCodes = { "TEST10":10, "SAVE5":5 };
+// Discount codes
+const discountCodes = { "TEST10": 10, "SAVE5": 5 };
 document.getElementById("apply-discount").addEventListener("click", () => {
-  const code = document.getElementById("discount-code").value.trim().toUpperCase();
+  const codeInput = document.getElementById("discount-code").value.trim().toUpperCase();
   const discountMessage = document.getElementById("discount-message");
 
-  if(discountCodes[code]){
-    const discountPercent = discountCodes[code];
+  if (discountCodes[codeInput]) {
     let totalGBP = 0;
-    priceElements.forEach((priceEl, i) => {
+    priceElements.forEach((el, i) => {
       const qty = parseFloat(quantityInputs[i].value);
-      totalGBP += parseFloat(priceEl.dataset.gbp) * qty;
+      totalGBP += parseFloat(el.dataset.gbp) * qty;
     });
-    const discountedTotalGBP = totalGBP * (1 - discountPercent / 100);
-    const currency = currencyDropdown.value;
-    const symbol = currencySymbols[currency] || currency;
-    totalElement.textContent = "Total: " + symbol + formatNumber(discountedTotalGBP * rates[currency]);
-    discountMessage.textContent = `Discount applied: ${discountPercent}% off!`;
+
+    const discountedTotal = totalGBP * (1 - discountCodes[codeInput]/100);
+    totalElement.textContent = "Total: £" + formatNumber(discountedTotal);
+    discountMessage.textContent = `Discount applied: ${discountCodes[codeInput]}% off!`;
   } else {
     discountMessage.textContent = "Invalid discount code.";
   }
 });
+
+// Initial update
+updateCart();
 </script>
 
 </body>
 </html>
+
+
